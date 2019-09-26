@@ -70,6 +70,7 @@ void loop(){
   lotodigit.check();
   if(!lastConnectionTime) httpRequest();
   while (client.available()) {
+    lotodigit.check();
     c = client.read();
     text = String(c);
     test++;
