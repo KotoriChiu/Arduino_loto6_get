@@ -6,23 +6,17 @@
 long test = 0,loto_vlaue = 0;
 char ssid[] = "P883-cht-3";           
 char pass[] = "as0955065969";       
-int status = WL_IDLE_STATUS;
-int LOTOtoINT[22]={0};
-int LOTO_Comparison[22]={0};  
+int status = WL_IDLE_STATUS,red_led = 9,green_led = 10,LEDPLUS = 11;
+int LOTOtoINT[22] = {0};
+int LOTO_Comparison[22] = {0};  
 char c;
 String text = "";
 char server[] = "lotto123.org";
-
 unsigned long lastConnectionTime = 0;         
 const unsigned long postingInterval = 10000L; 
 
 WiFiEspClient client;
-void loto_DIGIT();
-void loto_GET();
-TimedAction lotodigit = TimedAction(1,loto_DIGIT);
-
 int seg[7] = {2,3,4,5,6,7,8};
-int red_led = 9,green_led = 10,LEDPLUS = 11;
 int digit[22] = {22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,44};
 int seven_seg_digits[10][7] ={
   {1,1,1,1,1,1,0}, //0
@@ -36,6 +30,11 @@ int seven_seg_digits[10][7] ={
   {1,1,1,1,1,1,1}, //8
   {1,1,1,1,0,1,1}  //9
   };
+
+void loto_DIGIT();
+void http_GET();
+TimedAction lotodigit = TimedAction(0,loto_DIGIT);
+TimedAction httpget = TimedAction(0,http_GET);
 
 void setup(){
   pinMode(red_led,OUTPUT);
@@ -53,21 +52,25 @@ void setup(){
     while (true);
   }
 
-  while ( status != WL_CONNECTED) {
+  while (status != WL_CONNECTED) {
     Serial.print("Attempting to connect to WPA SSID: ");
     Serial.println(ssid);
     status = WiFi.begin(ssid, pass);
   }
-  for(int i = 0;i<7;i++)pinMode(seg[i],OUTPUT);
-  for(int i = 0;i<22;i++)pinMode(digit[i],OUTPUT);
+  for(int i = 0;i < 7;i++)pinMode(seg[i],OUTPUT);
+  for(int i = 0;i < 22;i++)pinMode(digit[i],OUTPUT);
   Serial.println("You're connected to the network");
   printWifiStatus();
 }
 
-void loop(){
+void loop() {
   digitalWrite(red_led,LOW);
   digitalWrite(green_led,HIGH);
   lotodigit.check();
+  httpget.check();
+}
+
+void http_GET() {
   if(!lastConnectionTime) httpRequest();
   while (client.available()) {
     c = client.read();
@@ -102,19 +105,19 @@ void loop(){
             break;
     }
   }
-  test=0; loto_vlaue=0;
+  test = 0; loto_vlaue = 0;
   if (millis() - lastConnectionTime > postingInterval) httpRequest();
 }
 
 void loto_DIGIT(){
-  if(LOTOtoINT[0]!=0||LOTOtoINT[1]!=0||LOTOtoINT[2]!=0||LOTOtoINT[3]!=0 && LOTO_Comparison!=LOTOtoINT){ 
-    for(int i = 0;i<22;i++){
+  if(LOTOtoINT[0] !=0 || LOTOtoINT[1] != 0 || LOTOtoINT[2] != 0 || LOTOtoINT[3] != 0 && LOTO_Comparison != LOTOtoINT){ 
+    for(int i = 0;i < 22;i++){
       LOTO_Comparison[i] = LOTOtoINT[i];
       lightDigit(LOTOtoINT[i],i);
       delay(1);
     }
   }else{
-    for(int i = 0;i<22;i++){
+    for(int i = 0;i < 22;i++){
       lightDigit(LOTO_Comparison[i],i);
       delay(1);
     }
@@ -153,8 +156,8 @@ void lightDigit(int num,int position){
 }
 
 void pickDigit(int value){
-    for(int i = 0;i<22;i++)digitalWrite(digit[i],HIGH);
-    for(int i = 0;i<22;i++){
+    for(int i = 0;i < 22;i++)digitalWrite(digit[i],HIGH);
+    for(int i = 0;i < 22;i++){
         if(value == i){
             digitalWrite(digit[i],LOW);
             break;
@@ -163,5 +166,5 @@ void pickDigit(int value){
 }
 
 void lightSegments(int num){
-  for(int i = 0;i<7;i++)digitalWrite(seg[i],seven_seg_digits[num][i]);
+  for(int i = 0;i < 7;i++)digitalWrite(seg[i],seven_seg_digits[num][i]);
 }
