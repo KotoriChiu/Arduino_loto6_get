@@ -2,7 +2,7 @@
 #ifndef HAVE_HWSERIAL1
 #include "SoftwareSerial.h"
 #endif
-long test = 0,loto_value = 0;
+long test = 0;
 char ssid[] = "P883-cht-3";
 char pass[] = "as0955065969";
 int status = WL_IDLE_STATUS,red_led = 9,green_led = 10,LEDPLUS = 11;
@@ -11,6 +11,7 @@ char LOTOchar[22];
 char server[] = "lotto123.org";
 unsigned long lastConnectionTime = 0;         
 const unsigned long postingInterval = 10000L; 
+String text = "";
 WiFiEspClient clinet;
 
 SoftwareSerial ESP8266(2,3);//RX TX
@@ -55,7 +56,6 @@ void http_GET() {
     if(!lastConnectionTime) httpRequest();
     while (client.available()) {
         char c = client.read();
-        String text = String(c);
         test++;
         switch (test){
             case 4941:
@@ -80,9 +80,8 @@ void http_GET() {
             case 5168:
             case 5170:
             case 5171:  
-                LOTOchar[loto_vlaue] = c;
-                Serial.println(LOTOchar[loto_vlaue]);
-                loto_vlaue++;
+                text+=String(c);
+                Serial.println(c);
                 break;
         }
     }
