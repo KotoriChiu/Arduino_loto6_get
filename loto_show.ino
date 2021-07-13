@@ -1,99 +1,90 @@
-#include "WiFiEsp.h"
-#include "TimedAction.h"
-
-char ssid[] = "P883-cht-3";           
-char pass[] = "as0955065969";   
-char push[22];
-int status = WL_IDLE_STATUS;
-String text = "";
-int LOTOtoINT[22]={0};
-WiFiEspClient client;
-char server[] = "lotophp.000webhostapp.com";
-int red_led = 9,green_led = 10;
-unsigned long lastConnectionTime = 0;         
-const unsigned long postingInterval = 10000L; 
-
+#include "SoftwareSerial.h"
+int LOTOtoINT[22];
+int LOTO_Comparison[22]={0};
+int seg[7] = {2,3,4,5,6,7,8};
+char int_;
+//bool ctrl = false;
+int max_ = 0;
+int digit[22] = {22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,44};
+int seven_seg_digits[10][7] ={
+    {1,1,1,1,1,1,0}, //0
+    {0,1,1,0,0,0,0}, //1
+    {1,1,0,1,1,0,1}, //2
+    {1,1,1,1,0,0,1}, //3
+    {0,1,1,0,0,1,1}, //4
+    {1,0,1,1,0,1,1}, //5
+    {1,0,1,1,1,1,1}, //6
+    {1,1,1,0,0,0,0}, //7
+    {1,1,1,1,1,1,1}, //8
+    {1,1,1,1,0,1,1}  //9
+  };
+int dash[7] = {0,0,0,1,0,0,0};
 void setup(){
-    pinMode(red_led,OUTPUT);
-    pinMode(green_led,OUTPUT);
-    digitalWrite(red_led,HIGH);
-    digitalWrite(green_led,LOW);
-    Serial.begin(115200);
-    Serial1.begin(115200);
-    Serial2.begin(115200);
-    WiFi.init(&Serial1);
-    if (WiFi.status() == WL_NO_SHIELD) {
-    Serial.println("WiFi shield not present");
-    while (true);
-    }
-    while ( status != WL_CONNECTED) {
-        Serial.print("Attempting to connect to WPA SSID: ");
-        Serial.println(ssid);
-        status = WiFi.begin(ssid, pass);
-    }
-    Serial.println("You're connected to the network");
-    printWifiStatus();
+
+      Serial2.begin(115200);
+      Serial.begin(9600);
+
+      for(int i = 0;i<7;i++)
+            pinMode(seg[i],OUTPUT);
+      for(int i = 0;i<22;i++){
+          pinMode(digit[i],OUTPUT);
+          for(int i = 0;i<22;i++)digitalWrite(digit[i],LOW);
+          for(int j = 0;j<7;j++)digitalWrite(seg[j],dash[j]);
+      }
 }
 
 void loop(){
-    digitalWrite(red_led,LOW);
-    digitalWrite(green_led,HIGH);
-    if(!lastConnectionTime) httpRequest();
-    char get_data;
-    String text ="";
-    String data_C="";
-    boolean HE_ = false;
-    int loto_vlaue = 0;
-    while(client.available()){
-        get_data = client.read();
-        text = String(get_data);
-        //Serial.print(text);
-        if(text == "$" || HE_ == true){
-            if(HE_ == false){
-                HE_ = true;
-                continue;
-            }
-            if(text == "|"){
-                HE_ = false;
-                break;
-            }
-            data_C+=text;
-            LOTOtoINT[loto_vlaue] = text.toInt();
-            Serial.print(text+" ");
-            loto_vlaue++;
+    if(tx_rx_get()||loto_add_count(LOTO_Comparison)>0)
+        loto_DIGIT(LOTO_Comparison);  
+}
+
+boolean tx_rx_get(){
+    while(Serial2.available()){
+        int_ = Serial2.read();
+        LOTOtoINT[max_] = int_ - '0';
+        LOTO_Comparison[max_]=LOTOtoINT[max_];
+        Serial.print(LOTOtoINT[max_]);
+        max_++;
+        
+        if(max_>21){
+            max_=0;
+            //loto_DIGIT();
+            return true;
         }
     }
-//     Serial.print(a);
-     
-     data_C.toCharArray(push,23); 
-     Serial2.write(push);
-     //Serial.print(push);
-     loto_vlaue=0;
-     if (millis() - lastConnectionTime > postingInterval){
-      httpRequest();
-      Serial.print("?");
-     }
+    return false;
 }
 
-void printWifiStatus(){
-    Serial.print("SSID: ");
-    Serial.println(WiFi.SSID());
-    IPAddress ip = WiFi.localIP();
-    Serial.print("IP Address: ");
-    Serial.println(ip);
-    long rssi = WiFi.RSSI();
-    Serial.print("Signal strength (RSSI):");
-    Serial.print(rssi);
-    Serial.println(" dBm");
+int loto_add_count(int LOTO[]){
+    int count=0;
+    fot(int i=0;i<22;i++)
+        count+=LOTO[i];
+    return count;
 }
 
-void httpRequest(){
-  Serial.println();
-  client.stop();
+void loto_DIGIT(int LOTO_data[]){
+    for(int i = 0;i<22;i++){
+      lightDigit(LOTO_data[i],i);
+      delay(1);
+    }
+}
 
-  if (client.connect(server, 80)) {
-    Serial.println("Connecting...");
-    client.print(String("GET /") + " HTTP/1.1\r\n" + "Host: " + server + "\r\nConnection: close\r\n\r\n"); 
-    lastConnectionTime = millis();
-  }else Serial.println("Connection failed");
+
+void pickDigit(int value){
+    for(int i = 0;i<22;i++)digitalWrite(digit[i],HIGH);
+    for(int i = 0;i<22;i++){
+        if(value == i){
+            digitalWrite(digit[i],LOW);
+            break;
+        }
+    }
+}
+
+void lightDigit(int num,int position_){
+    pickDigit(position_);
+    lightSegments(num);
+}
+
+void lightSegments(int num){
+  for(int i = 0;i<7;i++)digitalWrite(seg[i],seven_seg_digits[num][i]);
 }
